@@ -21,10 +21,9 @@ if __name__ == "__main__":
     flann = cv2.FlannBasedMatcher(index_params, search_params)
     # bf = cv2.BFMatcher()
     frame_count = 0
-    while True:
+    while cap.isOpened():
         _, frame = cap.read()
         print(frame_count)
-        frame_count = frame_count + 1
         grayframe = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         
         kp_grayframe, desc_grayframe = sift.detectAndCompute(grayframe, None)
@@ -36,6 +35,8 @@ if __name__ == "__main__":
 
         # delta_time = time.process_time()
         matches = flann.knnMatch(desc_image, desc_grayframe, k=2)
+
+        # matches = cv2.BFMatcher(cv2.NORM_L2SQR).knnMatch(desc_image, desc_grayframe, k=2)
         # delta_time = time.process_time() - delta_time
         
         # delta_time = time.process_time()
@@ -73,6 +74,7 @@ if __name__ == "__main__":
             # mat_, mask_ = cv2.findHomography(query_pts, train_pts, cv2.RANSAC, 5.0)
 
             
+            real_train_pts = cv2.perspectiveTransform(query_pts, mat) 
             matches_mask = mask.ravel().tolist()
 
             h, w = img.shape[:2]
@@ -80,9 +82,27 @@ if __name__ == "__main__":
                 [0, 0], [0, h], [w, h], [w, 0]
             ]).reshape(-1, 1, 2)
 
+
+            distance_filtered_query_pts = []
+            distance_filtered_train_pts = []
+            for i in range(len(query_pts)):
+                distance = np.linalg.norm(real_train_pts[i][0] - train_pts[i][0])
+                # print(distance)
+                if distance <= 20.0:
+                # if True:
+                    # print(distance)
+                    distance_filtered_query_pts.append(query_pts[i])
+                    distance_filtered_train_pts.append(train_pts[i])
+
+            query_pts = np.float32(distance_filtered_query_pts)
+            # print(query_pts)
+            train_pts = np.float32(distance_filtered_train_pts)
+
+            mat, mask = cv2.findHomography(query_pts, train_pts, cv2.RANSAC, 5.0)
             warped = cv2.warpPerspective(frame, mat, (h, w))
             dst = cv2.perspectiveTransform(pts, mat)
             real_train_ptrs = cv2.perspectiveTransform(query_pts, mat)
+
             # print(real_train_ptrs)
             # M = cv2.getPerspectiveTransform(np.int32(dst), pts)
             # warped = cv2.warpPerspective(frame, M, (img.shape[1], img.shape[0]))
@@ -99,9 +119,11 @@ if __name__ == "__main__":
             # print(delta_time)
 
             cv2.imshow("Homography", homography)
+            # cv2.imwrite("homography/frame{}.png".format(frame_count), homography)
         else:
             cv2.imshow("Homography", frame)
         
+        frame_count = frame_count + 1
         # cv2.imshow("Image", img)
         # cv2.imshow("gray frame", grayframe)
         cv2.imshow("img3", img3)

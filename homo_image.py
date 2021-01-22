@@ -7,6 +7,7 @@ if __name__ == "__main__":
     image = cv2.imread(sys.argv[2], cv2.IMREAD_GRAYSCALE)
 
     sift = cv2.xfeatures2d.SIFT_create()
+    # sift = cv2.ORB_create()
 
     kp_image, desc_image = sift.detectAndCompute(image, None)
 
@@ -19,10 +20,11 @@ if __name__ == "__main__":
 
     
     matches = flann.knnMatch(desc_image, desc_frame, k=2)
+    # matches = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True).knnMatch(desc_image, desc_frame, k=2)
     good_points = []
     #distance is the difference of 2 vector
     for m, n in matches:
-        if m.distance < 0.7  * n.distance:
+        if m.distance < 0.6  * n.distance:
         # if True:
             good_points.append(m)
 
@@ -39,6 +41,8 @@ if __name__ == "__main__":
             
 
         mat, mask = cv2.findHomography(query_pts, train_pts, cv2.RANSAC, 5.0)
+        # mat, mask = cv2.findFundamentalMat(query_pts, train_pts)
+        # mat = cv2.getPerspectiveTransform(query_pts, train_pts)
         # mat_, mask_ = cv2.findHomography(query_pts, train_pts, cv2.RANSAC, 5.0)
 
         real_train_pts = cv2.perspectiveTransform(query_pts, mat) 
@@ -50,8 +54,9 @@ if __name__ == "__main__":
         for i in range(len(query_pts)):
             distance = np.linalg.norm(real_train_pts[i][0] - train_pts[i][0])
             # print(distance)
-            if distance <=  5.0:
-                print(distance)
+            if distance <= 10.0:
+            # if True:
+                # print(distance)
                 distance_filtered_query_pts.append(query_pts[i])
                 distance_filtered_train_pts.append(train_pts[i])
 
@@ -60,8 +65,10 @@ if __name__ == "__main__":
         train_pts = np.float32(distance_filtered_train_pts)
 
         mat, mask = cv2.findHomography(query_pts, train_pts, cv2.RANSAC, 5.0)
+        # mat, mask = cv2.findFundamentalMat(query_pts, train_pts)
 
-        matches_mask = mask.ravel().tolist()
+        # mat = cv2.getPerspectiveTransform(query_pts.astype(np.float32), train_pts.astype(np.float32))
+        # matches_mask = mask.ravel().tolist()
 
         h, w = image.shape[:2]
         pts = np.float32([
@@ -82,13 +89,16 @@ if __name__ == "__main__":
         match[0:img_h, 0:img_w] = image[:]
         match[0: frame_h, -frame_w - 1:-1] = frame[:]
 
+        match = np.dstack([match] * 3)
+
         for q_pt, t_pt in zip(query_pts, train_pts):
-            start_pt = q_pt[0].astype("uint8")
+            # start_pt = q_pt[0].astype("uint8")
+            start_pt = (int(q_pt[0][0]), int(q_pt[0][1]))
             # print(start_pt)
-            print(t_pt[0])
+            # print(t_pt[0])
             end_pt = (int(t_pt[0][0]) + img_w, int(t_pt[0][1]))
             # print(end_pt)
-            cv2.line(match, tuple(start_pt), tuple(end_pt), (255, 255, 255), 1)
+            cv2.line(match, tuple(start_pt), tuple(end_pt), (0, 0, 255), 1)
 
 
         homography = cv2.polylines(frame, [np.int32(dst)], True, (255, 0, 0), 3)

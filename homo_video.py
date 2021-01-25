@@ -4,14 +4,14 @@ import sys
 import time
 
 if __name__ == "__main__":
-    img = cv2.imread(sys.argv[2], cv2.IMREAD_GRAYSCALE)
+    img = cv2.imread(sys.argv[1], cv2.IMREAD_GRAYSCALE)
 
-    cap = cv2.VideoCapture(sys.argv[1])
+    cap = cv2.VideoCapture(sys.argv[2] if len(sys.argv) == 3 else 0)
 
     orb = cv2.ORB_create()
     bf = cv2.BFMatcher()
-    index_params = dict(algorithm=0, trees=5)
-    search_params = dict()
+    index_params = dict(algorithm=6, table_number=6, key_size=12, multi_probe_level=1)
+    search_params = dict(checks=100)
     flann = cv2.FlannBasedMatcher(index_params, search_params)
 
 
@@ -24,14 +24,22 @@ if __name__ == "__main__":
         kp_image, desc_image = orb.detectAndCompute(img, None)
 
         # matches = bf.knnMatch(desc_grayframe.astype(np.float32), desc_image.astype(np.float32), k=2)
-        matches = flann.knnMatch(desc_image.astype(np.float32), desc_grayframe.astype(np.float32), k=2)
+        matches = flann.knnMatch(desc_image, desc_grayframe, k=2)
         good_points = []
+        # print(matches[0][0])
         #distance is the difference of 2 vector
-        for m, n in matches:
-            if m.distance < 0.7  * n.distance:
+        # for m, n in matches:
+            # if m.distance < 0.7  * n.distance:
             # if True:
-                good_points.append(m)
+                # good_points.append(m)
+        # print("Test=" + str(matches))
+        for match in matches:
+            if len(match) == 0:
+                continue
 
+            m, n = match if len(match) == 2 else (match[0], match[0])
+            if m.distance < 0.7 * n.distance:
+                good_points.append(m)
 
         matching_img = cv2.drawMatches(img, kp_image, grayframe, kp_grayframe, good_points, grayframe, flags=0) 
         # matches = flann.match(desc_grayframe, desc_image)
@@ -54,7 +62,7 @@ if __name__ == "__main__":
             # homography = cv2.polylines(frame, [np.int32(dst)], True, (255, 0, 0), 3)
         homography = None
         print(len(good_points))
-        if len(good_points) >   4:
+        if len(good_points) >  10:
             
             # delta_time = time.process_time()
             query_pts = np.float32([kp_image[m.queryIdx].pt for m in good_points]).reshape(-1, 1, 2)

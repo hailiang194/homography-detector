@@ -8,13 +8,13 @@ if __name__ == "__main__":
 
     cap = cv2.VideoCapture(sys.argv[2] if len(sys.argv) == 3 else 0)
 
-    orb = cv2.ORB_create()
-    bf = cv2.BFMatcher()
+    orb = cv2.ORB_create(scoreType=cv2.ORB_FAST_SCORE, nfeatures=2000)
+    # bf = cv2.BFMatcher()
     index_params = dict(algorithm=6, table_number=6, key_size=12, multi_probe_level=1)
     search_params = dict(checks=100)
     flann = cv2.FlannBasedMatcher(index_params, search_params)
 
-
+    detect_frame_count = 1
     while cap.isOpened():
         _, frame = cap.read()
 
@@ -61,8 +61,11 @@ if __name__ == "__main__":
             # dst = cv2.perspectiveTransform(pts, mat)
             # homography = cv2.polylines(frame, [np.int32(dst)], True, (255, 0, 0), 3)
         homography = None
+        query_pts = None
+        train_pts = None
         print(len(good_points))
-        if len(good_points) >  10:
+        # if len(good_points) >  10:
+        # if True:
             
             # delta_time = time.process_time()
             query_pts = np.float32([kp_image[m.queryIdx].pt for m in good_points]).reshape(-1, 1, 2)
@@ -90,7 +93,7 @@ if __name__ == "__main__":
             for i in range(len(query_pts)):
                 distance = np.linalg.norm(real_train_pts[i][0] - train_pts[i][0])
                 # print(distance)
-                if distance <= 50.0:
+                if distance <= 10.0:
                 # if True:
                     # print(distance)
                     distance_filtered_query_pts.append(query_pts[i])
@@ -100,7 +103,7 @@ if __name__ == "__main__":
             # print(query_pts)
             train_pts = np.float32(distance_filtered_train_pts)
 
-
+            
             # print(query_pts)
             mat, mask = cv2.findHomography(query_pts, train_pts, cv2.RANSAC, 5.0)
             # print(mat) 
@@ -116,7 +119,8 @@ if __name__ == "__main__":
 
             warped = cv2.warpPerspective(frame, mat, (h, w))
             dst = cv2.perspectiveTransform(pts, mat)
-            # print(dst.shape)
+
+                # print(dst.shape)
                 # real_train_ptrs = cv2.perspectiveTransform(query_pts, mat)
                 # for element in train_pts:
                 #     print(element)
@@ -129,20 +133,57 @@ if __name__ == "__main__":
             # warped = cv2.warpPerspective(frame, M, (w, h))
             # cv2.imshow("warped", warped)
             # cv2.imshow("dst", dst)
-            print(query_pts)
-            homography = cv2.polylines(frame, [np.int32(dst)], True, (255, 0, 0), 3)
-            
+            # print(query_pts)
+            area = (cv2.contourArea(dst))
+
+            # if area < 100000:
+            #     cv2.imshow("Homography", frame)
+            #     continue
+
+            homography = cv2.polylines(frame.copy(), [np.int32(dst)], True, (255, 0, 0), 3)
+        
+        img_h, img_w = img.shape[:2]
+        frame_h, frame_w = frame.shape[:2]
+
+        match_w = img_w + frame_w
+        match_h = max(frame_h, img_h)
+
+        match = np.zeros((match_h, match_w), dtype="uint8")
+        
+        match[0:img_h, 0:img_w] = img[:]
+        match[0: frame_h, -frame_w - 1:-1] = grayframe[:]
+
+        match = np.dstack([match] * 3)
+
+        for q_pt, t_pt in zip(query_pts, train_pts):
+            # start_pt = q_pt[0].astype("uint8")
+            start_pt = (int(q_pt[0][0]), int(q_pt[0][1]))
+            # print(start_pt)
+            # print(t_pt[0])
+            end_pt = (int(t_pt[0][0]) + img_w, int(t_pt[0][1]))
+            # print(end_pt)
+            cv2.line(match, tuple(start_pt), tuple(end_pt), (0, 0, 255), 1)
+
+        cv2.imshow("new_matching", match)
+
             # delta_time = time.process_time() - delta_time
             # print(delta_time)
         if homography is not None:
             cv2.imshow("Homography", homography)
+            # cv2.imwrite("./frame/homo_{}.png".format(detect_frame_count), homography)
+            # cv2.imwrite("./frame/frame_{}.png".format(detect_frame_count), frame)
+            # detect_frame_count = detect_frame_count + 1
         else:
             cv2.imshow("Homography", frame)
+            # cv2.imwrite("./frame/homo_{}.png".format(detect_frame_count), homography)
+            # cv2.imwrite("./frame/frame_{}.png".format(detect_frame_count), frame)
+            detect_frame_count = detect_frame_count + 1
+
 
 
         cv2.imshow("matching", matching_img)
         # cv2.imshow("Homography", homography)
-        key = cv2.waitKey(1)
+        key = cv2.waitKey(0)
 
         if key == ord('q'):
             break

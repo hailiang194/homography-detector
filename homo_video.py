@@ -9,31 +9,32 @@ if __name__ == "__main__":
     cap = cv2.VideoCapture(sys.argv[2] if len(sys.argv) == 3 else 0)
 
     orb = cv2.ORB_create(scoreType=cv2.ORB_FAST_SCORE, nfeatures=2000)
-    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING)
     # index_params = dict(algorithm=6, table_number=6, key_size=12, multi_probe_level=1)
     # search_params = dict(checks=100)
     # flann = cv2.FlannBasedMatcher(index_params, search_params)
-
+    
     detect_frame_count = 1
     while cap.isOpened():
         _, frame = cap.read()
 
         grayframe = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        
+        grayframe = cv2.medianBlur(grayframe, 7)
         kp_grayframe, desc_grayframe = orb.detectAndCompute(grayframe, None)
         kp_image, desc_image = orb.detectAndCompute(img, None)
 
-        # matches = bf.knnMatch(desc_grayframe.astype(np.float32), desc_image.astype(np.float32), k=2)
-        matches = bf.match(desc_image, desc_grayframe)
+        matches = bf.knnMatch(desc_image, desc_grayframe, k=2)
+        # matches = bf.match(desc_image, desc_grayframe)
         # matches = flann.knnMatch(desc_image, desc_grayframe, k=2)
-        good_points = sorted(matches, key=lambda val: val.distance)[:50]
+        # good_points = sorted(matches, key=lambda val: val.distance)[:50]
         # m = matches[:]
         # print(matches[0][0])
         #distance is the difference of 2 vector
-        # for m, n in matches:
-            # if m.distance < 0.7  * n.distance:
+        good_points = []
+        for m, n in matches:
+            if m.distance < 0.8  * n.distance:
             # if True:
-                # good_points.append(m)
+                good_points.append(m)
         # print("Test=" + str(matches))
         # for match in matches:
         #     if len(match) == 0:
@@ -70,9 +71,14 @@ if __name__ == "__main__":
         train_pts =np.float32([kp_grayframe[m.trainIdx].pt for m in good_points]).reshape(-1, 1, 2)
         currentPts = len(query_pts)
 
-        for i in range(currentPts - 1):
-            query_pts = np.append(query_pts, [(query_pts[i] + query_pts[i + 1]) / 2.0], axis=0)
-            train_pts = np.append(train_pts, [(train_pts[i] + train_pts[i + 1]) / 2.0], axis=0)
+        # for i in range(currentPts - 1):
+        #     query_pts = np.append(query_pts, [(query_pts[i] + query_pts[i + 1]) / 2.0], axis=0)
+        #     train_pts = np.append(train_pts, [(train_pts[i] + train_pts[i + 1]) / 2.0], axis=0)
+        for i in range(1, currentPts):
+            for j in range(i):
+                if np.linalg.norm(train_pts[i] - train_pts[j]) < min(frame.shape[0] * 0.05, frame.shape[1] * 0.05):
+                    query_pts = np.append(query_pts, [(query_pts[i] + query_pts[j]) / 2.0], axis=0)
+                    train_pts = np.append(train_pts, [(train_pts[i] + train_pts[j]) / 2.0], axis=0)
 
         # print(query_pts.shape)
         # print(train_pts)
@@ -94,7 +100,7 @@ if __name__ == "__main__":
         for i in range(len(query_pts)):
             distance = np.linalg.norm(real_train_pts[i][0] - train_pts[i][0])
                 # print(distance)
-            if distance <= 10.0:
+            if distance <=  5.0:
                 # if True:
                     # print(distance)
                 distance_filtered_query_pts.append(query_pts[i])
@@ -181,11 +187,11 @@ if __name__ == "__main__":
 
             homography = cv2.polylines(frame.copy(), [np.int32(dst)], True, (255, 0, 0), 3)
  
-            area = (cv2.contourArea(dst))
-            if area < 10000:
-                cv2.imwrite("./frame/homo_{}.png".format(detect_frame_count), homography)
-                cv2.imwrite("./frame/frame_{}.png".format(detect_frame_count), frame)
-                detect_frame_count = detect_frame_count + 1
+            # area = (cv2.contourArea(dst))
+            # if area < 10000:
+            #     cv2.imwrite("./frame/homo_{}.png".format(detect_frame_count), homography)
+            #     cv2.imwrite("./frame/frame_{}.png".format(detect_frame_count), frame)
+            #     detect_frame_count = detect_frame_count + 1
 
        
         img_h, img_w = img.shape[:2]

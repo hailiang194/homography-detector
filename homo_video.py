@@ -115,7 +115,7 @@ if __name__ == "__main__":
         print(len(good_points))
         # if len(good_points) >  10:
         # if True:
-        if len(distance_filtered_train_pts) > 10:
+        if len(good_points) > 10 and ((query_pts.shape[0]) > 0 and len(good_points) <= (query_pts.shape[0])):
             # delta_time = time.process_time()
             # query_pts = np.float32([kp_image[m.queryIdx].pt for m in good_points]).reshape(-1, 1, 2)
 
@@ -207,6 +207,13 @@ if __name__ == "__main__":
             if abs(np.sum(corner) - 360.0) > 2:
                 cv2.imshow("Homography", frame)
                 continue
+            
+            if np.min(corner) < 40:
+                cv2.imshow("Homography", frame)
+                continue
+            elif np.max(corner) >= 110:
+                cv2.imshow("Homography", frame)
+                continue
             # print(corners)
             # aveger_cor = np.sum(np.float32(corners), axis=0) / len(corners) if len(corners) > 0 else corners
 
@@ -215,12 +222,14 @@ if __name__ == "__main__":
             if len(corners) > 5:
                 corners.pop(0)
             
-            print(corner)
+            # print(corner)
             aver_corner = (np.sum(corners, axis=0) / len(corners))
 
             # print(corner)
             homography = cv2.polylines(frame.copy(), [np.int32(dst)], True, (255, 0, 0), 3)
+            print(corner)
             if np.max(aver_corner - corner) > 15:
+                print("FAILED")
                 cv2.imwrite("./frame/homo_{}.png".format(detect_frame_count), homography)
                 cv2.imwrite("./frame/frame_{}.png".format(detect_frame_count), frame)
                 detect_frame_count = detect_frame_count + 1

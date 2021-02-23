@@ -84,7 +84,7 @@ if __name__ == "__main__":
 
         # print(query_pts.shape)
         # print(train_pts)
-        if query_pts.shape[0] == 0:
+        if query_pts.shape[0] < 4:
             cv2.imshow("Homography", frame)
             continue
         mat, mask = cv2.findHomography(query_pts, train_pts, cv2.RANSAC, 5.0)
@@ -192,7 +192,11 @@ if __name__ == "__main__":
                 dst[3][0] - dst[2][0],
                 dst[0][0] - dst[3][0]
             ])
-
+            
+            edge_len = np.linalg.norm(edge, axis=1)
+            if abs((np.amax(edge_len) / np.amin(edge_len)) - (max(img.shape[:2]) / min(img.shape[:2]))) >= 0.4:
+                cv2.imshow("Homography", frame)
+                continue
 
             get_cos = lambda x, y: (np.dot(x, y)) / (np.linalg.norm(x) * np.linalg.norm(y))
 
@@ -265,7 +269,7 @@ if __name__ == "__main__":
 
         cv2.imshow("new_matching", match)
 
-        # delta_time = time.process_time() - delta_time
+        # delta46b3f09a39578c3da843ea5a34976da4fe2997e1_time = time.process_time() - delta_time
         # print(delta_time)
         if homography is not None:
             cv2.imshow("Homography", homography)

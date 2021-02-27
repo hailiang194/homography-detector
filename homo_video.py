@@ -15,7 +15,11 @@ if __name__ == "__main__":
     # flann = cv2.FlannBasedMatcher(index_params, search_params)
     corners = [] 
     detect_frame_count = 1
+    time_set = time.perf_counter()
     while cap.isOpened():
+        print(time.perf_counter() - time_set)
+        time_set = time.perf_counter()
+
         _, frame = cap.read()
 
         grayframe = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -76,11 +80,12 @@ if __name__ == "__main__":
         # for i in range(currentPts - 1):
         #     query_pts = np.append(query_pts, [(query_pts[i] + query_pts[i + 1]) / 2.0], axis=0)
         #     train_pts = np.append(train_pts, [(train_pts[i] + train_pts[i + 1]) / 2.0], axis=0)
-        for i in range(1, currentPts):
-            for j in range(i):
-                if np.linalg.norm(train_pts[i] - train_pts[j]) > min(frame.shape[0] * 0.05, frame.shape[1] * 0.05):
-                    query_pts = np.append(query_pts, [(query_pts[i] + query_pts[j]) / 2.0], axis=0)
-                    train_pts = np.append(train_pts, [(train_pts[i] + train_pts[j]) / 2.0], axis=0)
+        if query_pts.shape[0] <= 30:
+            for i in range(1, currentPts):
+                for j in range(i):
+                    if np.linalg.norm(train_pts[i] - train_pts[j]) > min(frame.shape[0] * 0.05, frame.shape[1] * 0.05):
+                        query_pts = np.append(query_pts, [(query_pts[i] + query_pts[j]) / 2.0], axis=0)
+                        train_pts = np.append(train_pts, [(train_pts[i] + train_pts[j]) / 2.0], axis=0)
 
         # print(query_pts.shape)
         # print(train_pts)
@@ -115,7 +120,8 @@ if __name__ == "__main__":
         print(len(good_points))
         # if len(good_points) >  10:
         # if True:
-        if len(good_points) > 10 and ((query_pts.shape[0]) > 0 and len(good_points) <= (query_pts.shape[0])):
+        if len(good_points) > 10 and ((query_pts.shape[0]) >= 4): 
+                                      # and len(good_points) <= (query_pts.shape[0])):
             # delta_time = time.process_time()
             # query_pts = np.float32([kp_image[m.queryIdx].pt for m in good_points]).reshape(-1, 1, 2)
 

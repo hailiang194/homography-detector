@@ -23,7 +23,7 @@ if __name__ == "__main__":
         _, frame = cap.read()
 
         grayframe = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        grayframe = cv2.medianBlur(grayframe, 7)
+        grayframe = cv2.medianBlur(grayframe, 3)
         grayframe = cv2.GaussianBlur(grayframe, (5, 5), 0)
         kp_grayframe, desc_grayframe = orb.detectAndCompute(grayframe, None)
         kp_image, desc_image = orb.detectAndCompute(img, None)
@@ -81,9 +81,10 @@ if __name__ == "__main__":
         #     query_pts = np.append(query_pts, [(query_pts[i] + query_pts[i + 1]) / 2.0], axis=0)
         #     train_pts = np.append(train_pts, [(train_pts[i] + train_pts[i + 1]) / 2.0], axis=0)
         if query_pts.shape[0] <= 25:
+            MIN_DISTANCE_OF_MIDPOINT = min(frame.shape[0] * 0.05, frame.shape[1] * 0.05)
             for i in range(1, currentPts):
                 for j in range(i):
-                    if np.linalg.norm(train_pts[i] - train_pts[j]) > min(frame.shape[0] * 0.05, frame.shape[1] * 0.05):
+                    if np.linalg.norm(train_pts[i] - train_pts[j]) > MIN_DISTANCE_OF_MIDPOINT:
                         query_pts = np.append(query_pts, [(query_pts[i] + query_pts[j]) / 2.0], axis=0)
                         train_pts = np.append(train_pts, [(train_pts[i] + train_pts[j]) / 2.0], axis=0)
 

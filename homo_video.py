@@ -80,7 +80,7 @@ if __name__ == "__main__":
         # for i in range(currentPts - 1):
         #     query_pts = np.append(query_pts, [(query_pts[i] + query_pts[i + 1]) / 2.0], axis=0)
         #     train_pts = np.append(train_pts, [(train_pts[i] + train_pts[i + 1]) / 2.0], axis=0)
-        if query_pts.shape[0] <= 30:
+        if query_pts.shape[0] <= 25:
             for i in range(1, currentPts):
                 for j in range(i):
                     if np.linalg.norm(train_pts[i] - train_pts[j]) > min(frame.shape[0] * 0.05, frame.shape[1] * 0.05):

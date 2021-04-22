@@ -65,6 +65,8 @@ if __name__ == "__main__":
         train_pts = np.float32(distance_filtered_train_pts)
 
         mat, mask = cv2.findHomography(query_pts, train_pts, cv2.RANSAC, 5.0)
+        print(query_pts.shape)
+        print(mask.shape)
         # mat, mask = cv2.findFundamentalMat(query_pts, train_pts)
 
         # mat = cv2.getPerspectiveTransform(query_pts.astype(np.float32), train_pts.astype(np.float32))
